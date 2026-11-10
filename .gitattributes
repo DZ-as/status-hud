@@ -1,0 +1,6 @@
+# PowerShell scripts must keep CRLF so Windows PowerShell 5.1 parses them
+# identically everywhere; everything else is plain UTF-8 text.
+* text=auto
+*.ps1 text eol=crlf
+*.png binary
+*.svg text
