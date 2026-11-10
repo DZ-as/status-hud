@@ -1,0 +1,10 @@
+- insert:
+    - id: session-status-hud
+      name: '@local/session-status-hud'
+      config:
+        hud: true
+        notifications: false
+        position: top-center
+        autoShowMs: 2500
+        appId: com.deepseek.dsh
+        minNotifyMs: 8000

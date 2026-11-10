@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "title": "Session Status HUD",
+    "description": "Shows a live, always-on-top status badge for running DSH sessions and raises Windows notifications when a session finishes, fails, or waits for your answer."
+  }
+}

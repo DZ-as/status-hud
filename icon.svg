@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64" role="img" aria-label="Session Status HUD">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#151A21"/>
+      <stop offset="1" stop-color="#0B0E12"/>
+    </linearGradient>
+  </defs>
+  <rect x="2" y="2" width="60" height="60" rx="16" fill="url(#bg)" stroke="#2A323D" stroke-width="2"/>
+  <circle cx="20" cy="24" r="6" fill="#4ADE80"/>
+  <circle cx="20" cy="24" r="10" fill="none" stroke="#4ADE80" stroke-opacity="0.28" stroke-width="2"/>
+  <rect x="32" y="19" width="20" height="5" rx="2.5" fill="#E7ECF3"/>
+  <rect x="32" y="28" width="13" height="4" rx="2" fill="#8A94A6"/>
+  <rect x="14" y="42" width="36" height="5" rx="2.5" fill="#2F3947"/>
+  <rect x="14" y="42" width="22" height="5" rx="2.5" fill="#60A5FA"/>
+</svg>

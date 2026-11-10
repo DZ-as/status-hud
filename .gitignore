@@ -1,0 +1,6 @@
+# 运行时状态目录（由插件自动生成）
+node_modules/
+*.tmp
+Thumbs.db
+desktop.ini
+.DS_Store
