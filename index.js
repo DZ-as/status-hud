@@ -788,17 +788,16 @@ export function apply(ctx, config = {}) {
       if (!agent) return
       const entry = entries.get(String(agent.id))
       if (!entry) return
+      // Only a real turn boundary decides "done". The agent reports idle in
+      // the gaps between steps, so treating idle as finished makes a long
+      // turn flicker green/blue.
       if (payload.status === 'running') {
-        if (entry.state !== 'running') {
+        if (entry.state !== 'running' && entry.state !== 'waiting') {
           entry.state = 'running'
           entry.startedAt = entry.startedAt || Date.now()
           entry.endedAt = null
           entry.detail = entry.detail || '思考中…'
         }
-      } else if (entry.state === 'running' || entry.state === 'waiting') {
-        entry.state = 'done'
-        entry.endedAt = Date.now()
-        entry.detail = entry.detail === '思考中…' ? '回复完成' : entry.detail
       }
       entry.lastActive = Date.now()
       publish()
@@ -992,23 +991,32 @@ export function apply(ctx, config = {}) {
     }
   }
 
-  // A finished entry should not pin the HUD forever: after a quiet period the
-  // snapshot falls back to idle instead of showing a stale "done".
+  // Never invent "done": a long tool run can go minutes without events. Only
+  // a session that is no longer open is retired to idle, and only after a
+  // generous quiet period.
   ctx.timer.interval(() => {
     const now = Date.now()
+    const live = new Set()
+    try {
+      for (const session of ctx.sessions.list()) live.add(String(session.id))
+    } catch {
+      /* keep the previous set */
+    }
     let changed = false
     for (const entry of [...entries.values()]) {
-      if (entry.state === 'running' || entry.state === 'waiting') {
-        if (now - entry.lastActive > options.idleResetMs) {
-          entry.state = 'done'
-          entry.endedAt = now
-          entry.detail = entry.detail || '已停止'
-          changed = true
-        }
-      }
+      if (entry.subagent) continue
+      const active = entry.state === 'running' || entry.state === 'waiting'
+      if (!active) continue
+      if (live.has(entry.id)) continue
+      if (now - entry.lastActive < options.finishedLingerMs) continue
+      entry.state = 'idle'
+      entry.endedAt = null
+      entry.detail = '会话已关闭'
+      changed = true
     }
     if (changed) publish(true)
     else publish()
+    void refreshTitles()
   }, 15_000)
 
   ctx.effect(() => {
