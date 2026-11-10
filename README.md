@@ -9,7 +9,7 @@
 需要 [DeepSeek Harness](https://github.com/deepseek-ai/deepseek-harness) 和系统自带的 Windows PowerShell 5.1。
 
 ```powershell
-git clone https://github.com/<your-name>/status-hud.git D:\plugins\status-hud
+git clone https://github.com/DZ-as/status-hud.git D:\plugins\status-hud
 ```
 
 然后在 DSH 里让 agent 执行（路径换成你的克隆位置）：
