@@ -43,8 +43,23 @@ plugin_manager action=install_bundle target="D:\plugins\status-hud"
 | **按住右键 650ms** | 把这一列从条上移除：按住时卡片内容模糊、中间出现垃圾桶图标，外面一圈红色进度条随按住时间填满；松手前不生效，它下一次开始新任务会自动回来 |
 | 完成 / 出错 | 面板自动展开 2.5 秒，对应会话那一列弹跳一下（560ms），可以直接点进去 |
 | 需要你确认 | 面板自动展开并一直停着，直到你处理 |
+| 有程序全屏（游戏/视频） | 悬浮条整体隐藏，退出全屏后自动回到原位 |
 
 ![展开面板](hud-panel.png)
+
+## 游戏模式
+
+有程序**全屏**（独占全屏的游戏，或无边框全屏的播放器）时，悬浮条会整体隐藏，退出全屏后自动回到顶部。
+
+判定方式（`hud.ps1` 里的 `HudStatus.Native.CheckFullscreen`）：
+
+1. 取前台窗口的矩形，和它所在显示器的矩形比较——完全覆盖才算全屏；
+2. 边界情况用 `SHQueryUserNotificationState` 辅助（`QUNS_RUNNING_D3D_FULL_SCREEN`）；
+3. 如果全屏的正是 DSH 自己（进程名含 `Harness`），**不隐藏**——你在 DSH 里全屏阅读时仍然能看到状态条。
+
+隐藏方式是**把窗口移到屏幕外**（`Top = -30000`），不是设 `Visibility`：后者会让 WPF 的 `ShowDialog` 返回、整个 HUD 进程退出。隐藏期间渲染和悬停判定都跳过，不占 CPU。
+
+不需要这个行为的话，在 `cordis.patch.yml` 里加 `gameMode: false` 即可（默认 `true`）。
 
 按住右键时的样子：
 

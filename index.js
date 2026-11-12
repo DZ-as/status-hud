@@ -76,6 +76,7 @@ function readOptions(config) {
     minNotifyMs: num(c.minNotifyMs, 8000),
     finishedLingerMs: num(c.finishedLingerMs, 120000),
     idleResetMs: num(c.idleResetMs, 90000),
+    gameMode: c.gameMode !== false,
     autoShowMs: num(c.autoShowMs, 2500),
     eventLingerMs: num(c.eventLingerMs, 8000),
     maxSessions: Math.max(1, num(c.maxSessions, 6)),
@@ -509,6 +510,7 @@ export function apply(ctx, config = {}) {
       event: pendingEvent && now - pendingEvent.at < options.eventLingerMs ? pendingEvent : null,
       autoShowMs: options.autoShowMs,
       hint: '单击跳转 · 按住右键移除',
+      gameMode: options.gameMode,
       updatedAt: now,
     }
   }

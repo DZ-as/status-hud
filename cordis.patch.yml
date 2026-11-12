@@ -7,4 +7,5 @@
         position: top-center
         autoShowMs: 2500
         appId: com.deepseek.dsh
+        gameMode: true
         minNotifyMs: 8000

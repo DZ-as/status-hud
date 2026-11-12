@@ -32,6 +32,49 @@ namespace HudStatus {
     [DllImport("user32.dll")] public static extern bool IsIconic(IntPtr hWnd);
     [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr hWnd, IntPtr after, int x, int y, int cx, int cy, uint flags);
     [DllImport("user32.dll")] public static extern void keybd_event(byte vk, byte scan, uint flags, UIntPtr extra);
+    [DllImport("user32.dll")] public static extern IntPtr GetForegroundWindow();
+    [DllImport("user32.dll")] public static extern IntPtr MonitorFromWindow(IntPtr hWnd, uint flags);
+    [DllImport("user32.dll")] public static extern bool GetMonitorInfo(IntPtr hMon, ref MONITORINFO mi);
+    [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr hWnd, out uint pid);
+    [DllImport("shell32.dll")] public static extern int SHQueryUserNotificationState(out int state);
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct MONITORINFO
+    {
+      public int cbSize;
+      public RECT rcMonitor;
+      public RECT rcWork;
+      public uint dwFlags;
+    }
+
+    // 0 = normal, 1 = a fullscreen application (hide the HUD),
+    // 2 = fullscreen but it is DSH itself (keep the HUD).
+    public static int CheckFullscreen()
+    {
+      IntPtr fg = GetForegroundWindow();
+      if (fg == IntPtr.Zero) return 0;
+
+      IntPtr mon = MonitorFromWindow(fg, 2);
+      MONITORINFO mi = new MONITORINFO();
+      mi.cbSize = Marshal.SizeOf(typeof(MONITORINFO));
+      if (!GetMonitorInfo(mon, ref mi)) return 0;
+
+      RECT r;
+      if (!GetWindowRect(fg, out r)) return 0;
+      if (r.Left > mi.rcMonitor.Left || r.Top > mi.rcMonitor.Top) return 0;
+      if (r.Right < mi.rcMonitor.Right || r.Bottom < mi.rcMonitor.Bottom) return 0;
+
+      uint pid;
+      GetWindowThreadProcessId(fg, out pid);
+      string name = "";
+      try { name = System.Diagnostics.Process.GetProcessById((int)pid).ProcessName; } catch { }
+      if (name.IndexOf("Harness", StringComparison.OrdinalIgnoreCase) >= 0) return 2;
+
+      // Exclusive D3D fullscreen reports QUNS_RUNNING_D3D_FULL_SCREEN (3);
+      // borderless fullscreen reports a normal state but the rect test above
+      // already caught it, so both cases hide the HUD.
+      return 1;
+    }
   }
 }
 '@
@@ -39,6 +82,8 @@ namespace HudStatus {
 $statusDir = [System.IO.Path]::GetDirectoryName($StatusPath)
 $logPath = Join-Path $statusDir 'hud.log'
 $script:SignalPath = Join-Path $statusDir 'event.signal'
+$script:GameMode = $false
+$script:GameModeEnabled = $true
 function Write-HudLog([string]$Message) {
   try { Add-Content -LiteralPath $logPath -Value ((Get-Date).ToString('s') + ' ' + $Message) -Encoding UTF8 } catch {}
 }
@@ -814,6 +859,8 @@ function Show-HudState {
 
   $hint = [string]$s.hint
   if (-not [string]::IsNullOrEmpty($hint)) { $script:HintText.Text = $hint }
+
+  if ($null -ne $s.gameMode) { $script:GameModeEnabled = [bool]$s.gameMode }
 }
 
 function Update-Hud {
@@ -921,6 +968,34 @@ function Send-Hide([string]$id) {
   }
 }
 
+function Update-GameMode {
+  if (-not $script:GameModeEnabled) {
+    if ($script:GameMode) {
+      $script:GameMode = $false
+      Set-GameHidden $false
+    }
+    return
+  }
+  $code = 0
+  try { $code = [HudStatus.Native]::CheckFullscreen() } catch { $code = 0 }
+  $active = ($code -eq 1)
+  if ($active -eq $script:GameMode) { return }
+  $script:GameMode = $active
+  Set-GameHidden $active
+  Write-HudLog ($(if ($active) { 'game mode on' } else { 'game mode off' }))
+}
+
+# Hiding a WPF window through Visibility shuts the modal loop down, so the
+# window is parked far off-screen instead and its hover logic is skipped.
+function Set-GameHidden([bool]$hidden) {
+  if ($hidden) {
+    if ($script:Expanded) { Set-Expanded $false $true }
+    $script:Window.Top = -30000
+  } else {
+    Apply-Position
+  }
+}
+
 function Focus-Host {
   try {
     $candidates = @(Get-Process -ErrorAction SilentlyContinue | Where-Object {
@@ -990,13 +1065,18 @@ $updateTimer.Interval = [TimeSpan]::FromMilliseconds(100)
 $updateTimer.Add_Tick({
     try {
       $script:Tick += 1
+
+      # A fullscreen game (or any borderless fullscreen app) hides the bar,
+      # and nothing is rendered or hit-tested while it is hidden.
+      if (($script:Tick % 5) -eq 1) { Update-GameMode }
+      if ($script:GameMode) { return }
+
       if ($script:ForceRefresh) {
         $script:ForceRefresh = $false
         Update-Hud
       } elseif (($script:Tick % 2) -eq 0) {
         Update-Hud
       }
-
       if ($script:HoldSince) {
         $elapsed = ([DateTime]::Now - $script:HoldSince).TotalMilliseconds
         if ($script:HoldParts) {

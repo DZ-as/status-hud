@@ -1,6 +1,6 @@
 {
   "name": "@local/session-status-hud",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "private": true,
   "type": "module",
   "description": "Always-on-top desktop status badge and Windows notifications for live DSH sessions.",
